@@ -7,4 +7,4 @@
  * bijvoorbeeld  https://jouwnaam.github.io/opvangwacht/#t=JOUWGEHEIM
  * De app onthoudt hem daarna op dat toestel.
  */
-window.OPVANG_API = "PLAK-HIER-DE-EXEC-URL-VAN-APPS-SCRIPT";
+window.OPVANG_API = "https://script.google.com/macros/s/AKfycbw5C420jhB8-xh7ICYM6l_is4GTcM8791e9MdP8LZKp4g4bbQdPw455NZ9qjllx9xHJ/exec";
