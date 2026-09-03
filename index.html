@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Opvangwacht</title>
+<meta name="description" content="Eigen registratie van de buitenschoolse opvang.">
+<meta name="theme-color" content="#0D6A5F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Opvangwacht">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F1F4F2; --card:#FFFFFF; --card-2:#F7F9F8;
+  --ink:#14201E; --ink-2:#3E4F4B; --ink-3:#6C7D79;
+  --line:#DCE4E1; --line-strong:#BFCCC8;
+  --accent:#0D6A5F; --accent-ink:#0A5349; --accent-soft:#DCEBE7; --accent-on:#FFFFFF;
+  --warn:#8A5A08; --warn-soft:#F6EBD6;
+  --danger:#9C2F3F; --danger-soft:#F7DFE3;
+  --good:#1F6B45; --good-soft:#DDEDE3;
+  --bar:#0D6A5F; --bar-track:#E7EDEB;
+  --shadow:0 1px 2px rgba(20,32,30,.05), 0 10px 26px -20px rgba(20,32,30,.45);
+  --mono:"IBM Plex Mono",SFMono-Regular,Consolas,monospace;
+  --ui:"Public Sans","Helvetica Neue",Arial,sans-serif;
+  --display:"Newsreader",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F1514; --card:#182120; --card-2:#1E2827;
+    --ink:#E8EFEC; --ink-2:#B4C3BF; --ink-3:#839792;
+    --line:#2A3634; --line-strong:#3B4A47;
+    --accent:#49BFAC; --accent-ink:#7FD8C8; --accent-soft:#1B322E; --accent-on:#08201C;
+    --warn:#E0A94A; --warn-soft:#33280F;
+    --danger:#E88A97; --danger-soft:#3A1D22;
+    --good:#6BC694; --good-soft:#16301F;
+    --bar:#49BFAC; --bar-track:#243130;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -20px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F1514; --card:#182120; --card-2:#1E2827;
+  --ink:#E8EFEC; --ink-2:#B4C3BF; --ink-3:#839792;
+  --line:#2A3634; --line-strong:#3B4A47;
+  --accent:#49BFAC; --accent-ink:#7FD8C8; --accent-soft:#1B322E; --accent-on:#08201C;
+  --warn:#E0A94A; --warn-soft:#33280F;
+  --danger:#E88A97; --danger-soft:#3A1D22;
+  --good:#6BC694; --good-soft:#16301F;
+  --bar:#49BFAC; --bar-track:#243130;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -20px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--ground); color:var(--ink); font-family:var(--ui); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; padding-bottom:env(safe-area-inset-bottom);
+}
+h1,h2,h3{margin:0; text-wrap:balance}
+button,input,select,textarea{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:4px}
+.wrap{max-width:1000px; margin:0 auto; padding:0 16px 90px}
+
+.topbar{position:sticky; top:0; z-index:20; background:var(--ground); border-bottom:1px solid var(--line); padding-top:env(safe-area-inset-top)}
+.topbar-inner{max-width:1000px; margin:0 auto; padding:14px 16px 0; display:flex; flex-direction:column; gap:12px}
+.brand{display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap}
+.brand h1{font-family:var(--display); font-weight:600; font-size:26px; letter-spacing:-.01em}
+.brand .sub{font-size:12px; color:var(--ink-3); letter-spacing:.06em; text-transform:uppercase; font-weight:600}
+.whochip{display:inline-flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line);
+  border-radius:999px; padding:5px 12px 5px 6px; font-size:13px; color:var(--ink-2); cursor:pointer}
+.whochip strong{color:var(--ink); font-weight:600}
+.avatar{width:24px;height:24px;border-radius:999px;background:var(--accent-soft);color:var(--accent-ink);
+  display:grid;place-items:center;font-size:11px;font-weight:700}
+.tabs{display:flex; gap:2px; overflow-x:auto; scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none; background:none; border:0; border-bottom:2px solid transparent; padding:10px 12px;
+  font-size:14px; font-weight:500; color:var(--ink-3); cursor:pointer; white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent); font-weight:600}
+
+.stack{display:flex; flex-direction:column; gap:16px; padding-top:20px}
+section.panel{display:none}
+section.panel.on{display:flex}
+.card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; box-shadow:var(--shadow)}
+.card.flat{box-shadow:none; background:var(--card-2)}
+.card h2{font-family:var(--display); font-weight:600; font-size:19px; margin-bottom:2px}
+.card .lede{color:var(--ink-3); font-size:13px}
+.sectionhead{display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px}
+.label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:700}
+.muted{color:var(--ink-3)}
+.num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+
+.btn{appearance:none; border:1px solid var(--line-strong); background:var(--card); border-radius:9px;
+  padding:9px 14px; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px}
+.btn:hover{border-color:var(--accent); color:var(--accent-ink)}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--accent-on)}
+.btn.primary:hover{filter:brightness(1.07); color:var(--accent-on)}
+.btn.ghost{border-color:transparent; background:transparent; color:var(--ink-3); font-weight:500}
+.btn.ghost:hover{color:var(--danger)}
+.btn.sm{padding:6px 10px; font-size:13px}
+.btn[disabled]{opacity:.45; cursor:not-allowed}
+
+.field{display:flex; flex-direction:column; gap:5px}
+.field label{font-size:12px; font-weight:600; color:var(--ink-2)}
+.field input,.field select,.field textarea{background:var(--card); border:1px solid var(--line-strong);
+  border-radius:8px; padding:9px 10px; font-size:16px; width:100%}
+.field input[type="time"],.field input[type="number"],.field input[type="date"]{font-family:var(--mono)}
+.field textarea{min-height:64px; resize:vertical; font-size:16px}
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px}
+.grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px}
+
+.banner{display:flex; gap:12px; align-items:flex-start; border-radius:10px; padding:12px 14px; font-size:14px; border:1px solid}
+.banner .bt{font-weight:700; display:block; margin-bottom:2px}
+.banner.warn{background:var(--warn-soft); border-color:color-mix(in srgb,var(--warn) 35%,transparent); color:var(--warn)}
+.banner.info{background:var(--accent-soft); border-color:color-mix(in srgb,var(--accent) 32%,transparent); color:var(--accent-ink)}
+.banner.bad{background:var(--danger-soft); border-color:color-mix(in srgb,var(--danger) 35%,transparent); color:var(--danger)}
+.banner.good{background:var(--good-soft); border-color:color-mix(in srgb,var(--good) 35%,transparent); color:var(--good)}
+
+.pill{display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:3px 10px; font-size:12px;
+  font-weight:600; border:1px solid var(--line-strong); color:var(--ink-2); background:var(--card-2)}
+.pill.good{background:var(--good-soft); color:var(--good); border-color:transparent}
+.pill.warn{background:var(--warn-soft); color:var(--warn); border-color:transparent}
+
+.bigdate{font-family:var(--display); font-size:22px; font-weight:600}
+.clock{font-family:var(--mono); font-size:52px; font-weight:500; letter-spacing:-.02em; line-height:1}
+.bigbtn{appearance:none; width:100%; border:0; border-radius:14px; cursor:pointer; background:var(--accent);
+  color:var(--accent-on); padding:24px 20px; font-size:19px; font-weight:700; margin-top:18px;
+  display:flex; flex-direction:column; align-items:center; gap:4px; box-shadow:0 12px 26px -18px var(--accent)}
+.bigbtn small{font-weight:500; font-size:13px; opacity:.85}
+.bigbtn:active{transform:translateY(1px)}
+.bigbtn.done{background:var(--good-soft); color:var(--good); box-shadow:none;
+  border:1px solid color-mix(in srgb,var(--good) 30%,transparent)}
+
+.receipt .line{display:flex; justify-content:space-between; gap:12px; font-size:14px; padding:7px 0; border-bottom:1px dashed var(--line)}
+.receipt .line:last-child{border-bottom:0}
+.receipt .line span:first-child{color:var(--ink-2)}
+.receipt .line .v{font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:500}
+.receipt .line.total{border-top:2px solid var(--line-strong); border-bottom:0; margin-top:4px; padding-top:10px; font-weight:700}
+
+.people{display:flex; flex-wrap:wrap; gap:8px}
+.person{appearance:none; cursor:pointer; border:1px solid var(--line-strong); background:var(--card);
+  border-radius:999px; padding:10px 16px; font-size:15px; font-weight:500}
+
+.tablewrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--card)}
+table{border-collapse:collapse; width:100%; font-size:13.5px; min-width:640px}
+th,td{padding:9px 12px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap}
+th{font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:700; background:var(--card-2)}
+td.n,th.n{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:0}
+td .opm{color:var(--ink-3); font-size:12.5px; white-space:normal; max-width:230px; display:block}
+.rowbtn{appearance:none;background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:6px}
+.rowbtn:hover{color:var(--accent-ink); background:var(--accent-soft)}
+
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:1px; background:var(--line);
+  border:1px solid var(--line); border-radius:10px; overflow:hidden}
+.kpi{background:var(--card); padding:14px 16px; display:flex; flex-direction:column; gap:4px}
+.kpi .k{font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); font-weight:700}
+.kpi .v{font-family:var(--mono); font-size:26px; font-weight:500; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px; color:var(--ink-3)}
+
+.chart{display:flex; flex-direction:column; gap:2px}
+.crow{display:grid; grid-template-columns:74px 1fr 78px; align-items:center; gap:10px; padding:2px 0}
+.crow .cd{font-size:12px; color:var(--ink-2); font-family:var(--mono)}
+.crow .ct{background:var(--bar-track); border-radius:4px; height:16px; overflow:hidden}
+.crow .cb{background:var(--bar); height:100%; border-radius:0 4px 4px 0; min-width:2px}
+.crow .cv{font-size:12px; text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--ink-2)}
+.crow[data-over="1"] .cb{background:var(--warn)}
+
+.empty{text-align:center; padding:34px 18px; color:var(--ink-3)}
+.empty .big{font-family:var(--display); font-size:19px; color:var(--ink-2); margin-bottom:6px}
+.pernav{display:flex; align-items:center; gap:8px}
+.pernav .plabel{font-family:var(--display); font-size:19px; font-weight:600; min-width:180px; text-align:center}
+.hint{font-size:12.5px; color:var(--ink-3); line-height:1.45}
+.subhead{font-size:13px; font-weight:700; color:var(--ink-2); margin:2px 0 8px}
+hr.sep{border:0; border-top:1px solid var(--line); margin:18px 0}
+.editrow{background:var(--card-2)}
+.toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--ink); color:var(--ground);
+  padding:11px 18px; border-radius:999px; font-size:14px; font-weight:600; z-index:60; max-width:90vw; text-align:center}
+.foot{margin-top:26px; font-size:12px; color:var(--ink-3); line-height:1.6; text-align:center}
+.syncdot{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-3)}
+.syncdot i{width:7px;height:7px;border-radius:99px;background:var(--good); font-style:normal}
+.syncdot[data-s="wacht"] i{background:var(--warn)}
+.syncdot[data-s="fout"] i{background:var(--danger)}
+.gate{max-width:440px; margin:60px auto; text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{ .topbar,.noprint{display:none!important} body{background:#fff} .card{box-shadow:none} }
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate" hidden>
+  <div class="card" style="text-align:left">
+    <h2>Opvangwacht</h2>
+    <p class="lede" style="margin:6px 0 16px">Vul de sleutel in die je van Raf kreeg, of open de link die hij je stuurde — die bevat de sleutel al.</p>
+    <div class="field"><label for="gate-token">Sleutel</label><input type="password" id="gate-token" autocomplete="off"></div>
+    <div class="row" style="margin-top:14px; justify-content:flex-end"><button class="btn primary" id="gate-ok" type="button">Openen</button></div>
+    <div class="hint" id="gate-fout" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div>
+        <h1>Opvangwacht</h1>
+        <div class="sub" id="brandsub">buitenschoolse opvang</div>
+      </div>
+      <div class="row" style="gap:10px">
+        <span class="syncdot" id="syncdot" data-s="ok"><i></i><span id="syncmsg">bijgewerkt</span></span>
+        <button class="whochip" id="whochip" type="button">
+          <span class="avatar" id="whoinit">?</span>
+          <span>ik ben <strong id="whoname">niemand</strong></span>
+        </button>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-registreren" aria-selected="true">Registreren</button>
+      <button class="tab" role="tab" id="tab-historiek" aria-selected="false">Historiek</button>
+      <button class="tab" role="tab" id="tab-rapport" aria-selected="false">Rapport</button>
+      <button class="tab" role="tab" id="tab-instellingen" aria-selected="false">Instellingen</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="topbanners"></div>
+
+  <section class="panel on stack" id="panel-registreren">
+    <div id="reminderslot"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between; align-items:flex-start">
+        <div>
+          <div class="label">Vandaag</div>
+          <div class="bigdate" id="todaydate">—</div>
+          <div class="hint" id="todayschool">—</div>
+        </div>
+        <div class="clock" id="clock">--u--</div>
+      </div>
+      <div id="registerslot"></div>
+    </div>
+
+    <div class="card" id="detailcard" style="display:none">
+      <div class="sectionhead">
+        <div><h2>Details van deze afhaling</h2>
+        <div class="lede">Pas aan wat niet klopt. Iedereen ziet dezelfde gegevens.</div></div>
+        <button class="btn ghost sm" id="btn-del-vandaag" type="button">Verwijderen</button>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="d-tijd">Uur van afhaling</label><input type="time" id="d-tijd"></div>
+        <div class="field"><label for="d-ophaler">Opgehaald door</label><select id="d-ophaler"></select></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label for="d-opm">Opmerking</label>
+        <textarea id="d-opm" placeholder="bv. bus van de zwemles was te laat"></textarea></div>
+      <div class="row" style="margin-top:12px; justify-content:space-between">
+        <div class="hint" id="d-gps"></div>
+        <button class="btn primary sm" id="btn-save-detail" type="button">Bewaren</button>
+      </div>
+      <hr class="sep">
+      <div class="label" style="margin-bottom:8px">Berekening voor deze dag</div>
+      <div class="receipt" id="d-receipt"></div>
+    </div>
+
+    <div class="card flat">
+      <div class="label" style="margin-bottom:8px">Een dag achteraf toevoegen</div>
+      <div class="grid3">
+        <div class="field"><label for="a-datum">Datum</label><input type="date" id="a-datum"></div>
+        <div class="field"><label for="a-tijd">Uur</label><input type="time" id="a-tijd"></div>
+        <div class="field"><label for="a-ophaler">Opgehaald door</label><select id="a-ophaler"></select></div>
+      </div>
+      <div class="row" style="margin-top:12px; justify-content:flex-end">
+        <button class="btn" id="btn-add" type="button">Toevoegen</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel stack" id="panel-historiek">
+    <div class="card">
+      <div class="sectionhead">
+        <div><h2>Historiek</h2><div class="lede" id="h-lede">Alle geregistreerde afhaalmomenten.</div></div>
+        <div class="pernav">
+          <button class="btn sm" id="h-prev" type="button" aria-label="Vorige periode">◀</button>
+          <div class="plabel" id="h-label">—</div>
+          <button class="btn sm" id="h-next" type="button" aria-label="Volgende periode">▶</button>
+        </div>
+      </div>
+      <div id="h-body"></div>
+    </div>
+  </section>
+
+  <section class="panel stack" id="panel-rapport">
+    <div class="card">
+      <div class="sectionhead">
+        <div><h2 id="r-title">Rapport</h2><div class="lede" id="r-sub">—</div></div>
+        <div class="pernav noprint">
+          <button class="btn sm" id="r-prev" type="button" aria-label="Vorige periode">◀</button>
+          <div class="plabel" id="r-label">—</div>
+          <button class="btn sm" id="r-next" type="button" aria-label="Volgende periode">▶</button>
+        </div>
+      </div>
+      <div id="r-kpis"></div>
+      <div id="r-budget" style="margin-top:14px"></div>
+      <div style="margin-top:20px">
+        <div class="subhead">Aangerekende tijd per dag</div>
+        <div class="chart" id="r-chart"></div>
+      </div>
+      <div style="margin-top:20px">
+        <div class="subhead">Alle afhaalmomenten in deze periode</div>
+        <div id="r-table"></div>
+      </div>
+      <div class="row noprint" style="margin-top:16px; justify-content:flex-end">
+        <button class="btn" id="btn-csv" type="button">Excel (CSV)</button>
+        <button class="btn" id="btn-pdf" type="button">PDF</button>
+        <button class="btn" id="btn-print" type="button">Afdrukken</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sectionhead"><div><h2>Vergelijking met de factuur van Ferm</h2>
+        <div class="lede">Vul in wat Ferm voor deze periode aanrekende.</div></div></div>
+      <div class="grid3">
+        <div class="field"><label for="f-bedrag">Bedrag op de factuur (€)</label><input type="number" step="0.01" min="0" id="f-bedrag"></div>
+        <div class="field"><label for="f-halfuren">Aangerekende halve uren</label><input type="number" step="1" min="0" id="f-halfuren" placeholder="optioneel"></div>
+        <div class="field"><label for="f-dagen">Aangerekende dagen</label><input type="number" step="1" min="0" id="f-dagen" placeholder="optioneel"></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label for="f-opm">Notitie</label><input type="text" id="f-opm" placeholder="bv. factuurnummer"></div>
+      <div class="row" style="margin-top:12px; justify-content:flex-end"><button class="btn primary sm" id="btn-factuur" type="button">Bewaren</button></div>
+      <div id="f-result" style="margin-top:16px"></div>
+    </div>
+  </section>
+
+  <section class="panel stack" id="panel-instellingen">
+    <div class="card">
+      <div class="sectionhead"><div><h2>School en lesuren</h2>
+        <div class="lede">De opvang begint zodra de lessen gedaan zijn.</div></div></div>
+      <div class="grid2">
+        <div class="field"><label for="s-kind">Naam van het kind</label><input type="text" id="s-kind"></div>
+        <div class="field"><label for="s-school">School</label><input type="text" id="s-school"></div>
+      </div>
+      <div class="label" style="margin:16px 0 8px">Einduur van de lessen</div>
+      <div class="grid3" id="s-einduren"></div>
+      <div class="hint" style="margin-top:8px">Laat een dag leeg als er die dag geen school is.</div>
+    </div>
+
+    <div class="card">
+      <div class="sectionhead"><div><h2>Facturatieperiode en rapport</h2>
+        <div class="lede">Rekent Ferm niet per kalendermaand af, zet de startdag dan op de dag waarop hun periode begint.</div></div></div>
+      <div class="grid2">
+        <div class="field"><label for="s-startdag">Startdag van de periode</label>
+          <input type="number" id="s-startdag" min="1" max="28" step="1"></div>
+        <div class="field"><label for="s-rapportdag">Rapport per e-mail op dag</label>
+          <input type="number" id="s-rapportdag" min="1" max="28" step="1"></div>
+      </div>
+      <div class="hint" id="s-perioduitleg" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div class="sectionhead"><div><h2>Tarieven</h2>
+        <div class="lede">Standaard volgens het reglement van de gemeente Dilbeek. Controleer ze op je factuur — Ferm indexeert jaarlijks.</div></div></div>
+      <div class="grid3">
+        <div class="field"><label for="s-gratis">Gratis kwartier (minuten)</label><input type="number" id="s-gratis" min="0" step="5"></div>
+        <div class="field"><label for="s-tarief">Per begonnen half uur (€)</label><input type="number" id="s-tarief" min="0" step="0.01"></div>
+        <div class="field"><label for="s-admin">Administratiebijdrage per schooljaar (€)</label><input type="number" id="s-admin" min="0" step="0.01"></div>
+        <div class="field"><label for="s-sluit">Sluitingsuur opvang</label><input type="time" id="s-sluit"></div>
+        <div class="field"><label for="s-toeslag">Toeslag laattijdig ophalen (€ / half uur)</label><input type="number" id="s-toeslag" min="0" step="0.01"></div>
+        <div class="field"><label for="s-budget">Budget — waarschuw boven (€)</label><input type="number" id="s-budget" min="0" step="1"></div>
+      </div>
+      <div class="row" style="margin-top:14px; gap:18px">
+        <label class="row" style="gap:8px; font-size:14px"><input type="checkbox" id="s-sociaal"> Sociaal tarief (20% van het gewone tarief)</label>
+        <label class="row" style="gap:8px; font-size:14px"><input type="checkbox" id="s-toeslagaan"> Toeslag laattijdig ophalen meerekenen</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sectionhead"><div><h2>Wie kan ophalen</h2>
+        <div class="lede">Iedereen kiest bij het openen wie hij is. Die keuze blijft op dat toestel.</div></div></div>
+      <div id="s-ophalers"></div>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="s-nieuw" placeholder="Naam toevoegen" style="max-width:240px; background:var(--card); border:1px solid var(--line-strong); border-radius:8px; padding:9px 10px">
+        <button class="btn sm" id="btn-ophaler-add" type="button">Toevoegen</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sectionhead"><div><h2>Controle aan de schoolpoort</h2>
+        <div class="lede">Optioneel. Bij het registreren wordt gemeten hoe ver je van de school staat.</div></div></div>
+      <label class="row" style="gap:8px; font-size:14px"><input type="checkbox" id="s-gps"> GPS-controle inschakelen</label>
+      <div class="row" style="margin-top:12px">
+        <button class="btn sm" id="btn-gps-set" type="button">Leg mijn huidige positie vast als schoolpoort</button>
+        <span class="hint" id="s-gpsinfo"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sectionhead"><div><h2>Toestel</h2><div class="lede">Instellingen die alleen op deze telefoon of computer gelden.</div></div></div>
+      <div class="row">
+        <button class="btn sm" id="btn-sync" type="button">Nu synchroniseren</button>
+        <button class="btn sm" id="btn-backup" type="button">Reservekopie downloaden</button>
+        <button class="btn ghost sm" id="btn-forget" type="button">Sleutel van dit toestel wissen</button>
+      </div>
+      <div class="hint" style="margin-top:10px" id="s-storage"></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    Opvangwacht is een eigen registratie, geen officieel document van Ferm.<br>
+    De bedragen zijn een schatting op basis van de tarieven die je zelf instelt.
+  </div>
+</div>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>
