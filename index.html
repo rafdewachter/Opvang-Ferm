@@ -64,6 +64,7 @@
   --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 28px -22px rgba(0,0,0,.9);
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--ground); color:var(--ink); font-family:var(--ui); font-size:15px; line-height:1.5;
   -webkit-font-smoothing:antialiased; padding-bottom:env(safe-area-inset-bottom)}
@@ -288,9 +289,11 @@ details>summary{cursor:pointer; font-size:13px; font-weight:600; color:var(--ink
         <div class="hint" id="d-gps"></div>
         <button class="btn primary sm" id="btn-save-detail" type="button">Bewaren</button>
       </div>
-      <hr class="sep">
-      <div class="label" style="margin-bottom:8px">Berekening voor deze dag</div>
-      <div class="receipt" id="d-receipt"></div>
+      <div id="berekenblok">
+        <hr class="sep">
+        <div class="label" style="margin-bottom:8px">Berekening voor deze dag</div>
+        <div class="receipt" id="d-receipt"></div>
+      </div>
     </div>
 
     <div class="card flat">
@@ -299,6 +302,12 @@ details>summary{cursor:pointer; font-size:13px; font-weight:600; color:var(--ink
       <div class="row" style="margin-top:12px; justify-content:flex-end">
         <button class="btn" id="btn-add" type="button">Toevoegen</button>
       </div>
+    </div>
+
+    <div class="card" id="recentcard" hidden>
+      <div class="sectionhead"><div><h2>De voorbije dagen</h2>
+        <div class="lede">Klopt er iets niet, pas het hier aan.</div></div></div>
+      <div id="recent-body"></div>
     </div>
   </section>
 
@@ -526,6 +535,8 @@ details>summary{cursor:pointer; font-size:13px; font-weight:600; color:var(--ink
     <div class="card">
       <div class="sectionhead"><div><h2>Toestel</h2><div class="lede">Geldt alleen op deze telefoon of computer.</div></div></div>
       <div class="row">
+        <button class="btn sm" id="btn-deellink" type="button">Kopieer beheerderslink</button>
+        <button class="btn sm" id="btn-deellink-gebruiker" type="button">Kopieer gebruikerslink</button>
         <button class="btn sm" id="btn-sync" type="button">Nu synchroniseren</button>
         <button class="btn sm" id="btn-backup" type="button">Reservekopie downloaden</button>
         <button class="btn ghost sm" id="btn-forget" type="button">Sleutel van dit toestel wissen</button>

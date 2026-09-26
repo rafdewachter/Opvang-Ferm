@@ -92,8 +92,17 @@ var state = {
   wie:null, token:null,
   hPeriode:null, rPeriode:null, fPeriode:null,
   sync:"ok", syncMsg:"bijgewerkt",
+  rol:"beheerder",       // wordt door de server bepaald aan de hand van de sleutel
+  gebruikerSleutel:"",
+  tab:"registreren",
   concept:null           // factuur in bewerking (nog niet bewaard)
 };
+
+function isBeheerder(){ return state.rol !== "gebruiker"; }
+function magZien(tab){ return isBeheerder() || tab === "registreren"; }
+
+var SLEUTELFOUT = "De sleutel is ondertussen veranderd. Typ ze niet opnieuw in — " +
+  "open de nieuwste link die je gekregen hebt, dan gaat het vanzelf.";
 
 /* ======================= verbinding ======================= */
 var outbox = [];
@@ -104,7 +113,7 @@ function haal(){
   if(!apiKlaar()) return Promise.reject(new Error("geen-url"));
   return fetch(apiUrl()+"?token="+encodeURIComponent(state.token)+"&t="+Date.now())
     .then(function(r){ return r.json(); })
-    .then(function(j){ if(!j.ok) throw new Error(j.fout||"fout"); return j.data; });
+    .then(function(j){ if(!j.ok) throw new Error(j.fout||"fout"); return j; });
 }
 function post(payload){
   return fetch(apiUrl(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
@@ -112,14 +121,18 @@ function post(payload){
 }
 function stuur(opdrachten){
   return post({token:state.token, actie:"batch", data:opdrachten})
-    .then(function(j){ if(!j.ok) throw new Error(j.fout||"fout"); return j.data; });
+    .then(function(j){ if(!j.ok) throw new Error(j.fout||"fout"); return j; });
 }
 
 function zetSync(s,msg){ state.sync=s; state.syncMsg=msg;
   var d=el("syncdot"); if(d){ d.setAttribute("data-s",s); el("syncmsg").textContent=msg; } }
 
-function neemOver(data){
-  if(!data) return;
+function neemOver(antwoord){
+  if(!antwoord) return;
+  /* de server stuurt {rol, gebruikerSleutel, data}; een oude cache is alleen data */
+  var data = antwoord.data || antwoord;
+  if(antwoord.rol){ state.rol = antwoord.rol; LS.set("soc.rol", antwoord.rol); }
+  state.gebruikerSleutel = antwoord.gebruikerSleutel || state.gebruikerSleutel || "";
   var cfg = JSON.parse(JSON.stringify(STANDAARD));
   if(data.instellingen) for(var k in cfg){ if(data.instellingen[k]!==undefined && data.instellingen[k]!==null) cfg[k]=data.instellingen[k]; }
   state.cfg = cfg;
@@ -127,7 +140,7 @@ function neemOver(data){
   state.regs = regs;
   var f={}; (data.facturen||[]).forEach(function(x){ if(x && x.periode) f[x.periode]=x; });
   state.facturen = f;
-  LS.set("soc.cache", data);
+  LS.set("soc.cache", {rol:state.rol, data:data});
   herstelPeriodes();
 }
 function herstelPeriodes(){
@@ -152,8 +165,17 @@ function flush(){
     neemOver(data);
     zetSync(outbox.length?"wacht":"ok", outbox.length? outbox.length+" wachten":"bewaard");
     render();
-  }).catch(function(){ zetSync("wacht", outbox.length+" wachten — geen verbinding"); })
-    .then(function(){ flushBezig=false; });
+  }).catch(function(e){
+    var f = String(e && e.message);
+    if(f==="token"){ vergeetSleutel(SLEUTELFOUT); return; }
+    if(f==="geenrechten"){
+      outbox = []; LS.set("soc.outbox", outbox);
+      zetSync("fout","geen rechten");
+      toast("Dat mag met deze sleutel niet. Vraag het aan een beheerder.");
+      ververs(true); return;
+    }
+    zetSync("wacht", outbox.length+" wachten — geen verbinding");
+  }).then(function(){ flushBezig=false; });
 }
 function ververs(stil){
   if(!navigator.onLine){ zetSync("wacht","offline — lokale kopie"); return Promise.resolve(); }
@@ -161,7 +183,7 @@ function ververs(stil){
     if(outbox.length) return;
     neemOver(data); render(); if(!stil) zetSync("ok","bijgewerkt");
   }).catch(function(e){
-    if(String(e.message)==="token"){ vergeetSleutel("Die sleutel klopt niet."); return; }
+    if(String(e.message)==="token"){ vergeetSleutel(SLEUTELFOUT); return; }
     zetSync("fout","niet bereikbaar");
   });
 }
@@ -260,6 +282,7 @@ function vergeetSleutel(reden){ LS.del("soc.token"); LS.del("ow.token"); state.t
 function start(){
   el("app").hidden=false; el("gate").hidden=true;
   state.wie = LS.get("soc.wie", null) || LS.get("ow.wie", null);
+  state.rol = LS.get("soc.rol", "beheerder");
   outbox = LS.get("soc.outbox", []) || [];
   var cache = LS.get("soc.cache", null) || LS.get("ow.cache", null);
   if(cache) neemOver(cache); else herstelPeriodes();
@@ -296,6 +319,17 @@ function bindStatic(){
   el("btn-csv").onclick=exportCSV; el("btn-pdf").onclick=exportPDF;
   el("btn-print").onclick=function(){ window.print(); };
   el("btn-sync").onclick=function(){ flush().then(function(){ return ververs(); }).then(function(){ toast("Bijgewerkt."); }); };
+  el("btn-deellink-gebruiker").onclick=function(){
+    if(!state.gebruikerSleutel){
+      alert("Er is nog geen gebruikerssleutel ingesteld.\n\nZet in Apps Script een waarde bij TOKEN_GEBRUIKER, "+
+            "bewaar, en implementeer een nieuwe versie. Daarna verschijnt de link hier.");
+      return;
+    }
+    kopieerLink(state.gebruikerSleutel, "Gebruikerslink gekopieerd — alleen registreren.");
+  };
+  el("btn-deellink").onclick=function(){
+    kopieerLink(state.token||"", "Beheerderslink gekopieerd — volledige toegang.");
+  };
   el("btn-backup").onclick=backup;
   el("btn-forget").onclick=function(){ if(confirm("De sleutel van dit toestel wissen?")) vergeetSleutel(); };
   el("btn-ophaler-add").onclick=function(){
@@ -365,6 +399,8 @@ function bindStatic(){
   });
 }
 function setTab(t){
+  if(!magZien(t)) t = "registreren";
+  state.tab = t;
   TABS.forEach(function(x){
     el("tab-"+x).setAttribute("aria-selected", x===t?"true":"false");
     el("panel-"+x).classList.toggle("on", x===t);
@@ -372,6 +408,14 @@ function setTab(t){
   window.scrollTo(0,0);
 }
 function bewaarCfg(){ duw("instellingen", state.cfg); }
+
+function kopieerLink(sleutel, melding){
+  var link = location.origin+location.pathname+"#t="+encodeURIComponent(sleutel);
+  if(navigator.clipboard) navigator.clipboard.writeText(link).then(
+    function(){ toast(melding); },
+    function(){ window.prompt("Kopieer deze link:", link); });
+  else window.prompt("Kopieer deze link:", link);
+}
 
 /* ======================= render ======================= */
 function render(){
@@ -387,6 +431,9 @@ function renderChrome(){
   el("whoname").textContent = state.wie||"niemand";
   el("whoinit").textContent = initials(state.wie);
   var h="";
+  TABS.forEach(function(t){ el("tab-"+t).hidden = !magZien(t); });
+  document.querySelector(".tabs").hidden = !isBeheerder();
+  if(!magZien(state.tab)) setTab("registreren");
   if(!apiKlaar()) h += banner("bad","De app is nog niet verbonden","In config.js staat nog geen web-app-URL van Apps Script.");
   if(outbox.length) h += banner("warn", outbox.length+" wijziging"+(outbox.length===1?"":"en")+" wachten",
     "Ze staan veilig op dit toestel en vertrekken zodra er weer verbinding is.");
@@ -418,19 +465,22 @@ function renderRegistreren(){
     el("detailcard").style.display="none"; renderHerinnering(); return;
   }
 
+  var naam = (c.kindNaam||"").trim();
+  var labelAf = naam ? naam+" afgezet" : "Afzetten registreren";
+  var labelOp = naam ? naam+" afgehaald" : "Ophalen registreren";
   var knoppen="";
   if(doetOchtend()){
     knoppen += (reg && reg.ochtendTijd)
       ? '<button class="bigbtn done" type="button" data-a="ochtend"><span>✓ Afgezet om '+esc(uur(reg.ochtendTijd))+'</span>'+
         '<small>door '+esc(reg.ochtendDoor||"—")+' · tik om het uur op nu te zetten</small></button>'
-      : '<button class="bigbtn ochtend" type="button" data-a="ochtend"><span>Afzetten registreren</span>'+
+      : '<button class="bigbtn ochtend" type="button" data-a="ochtend"><span>'+esc(labelAf)+'</span>'+
         '<small>voorschoolse opvang · '+esc(uur(nowTime()))+'</small></button>';
   }
   if(doetAvond()){
     knoppen += (reg && reg.avondTijd)
       ? '<button class="bigbtn done" type="button" data-a="avond"><span>✓ Opgehaald om '+esc(uur(reg.avondTijd))+'</span>'+
         '<small>door '+esc(reg.avondDoor||"—")+' · tik om het uur op nu te zetten</small></button>'
-      : '<button class="bigbtn" type="button" data-a="avond"><span>Ophalen registreren</span>'+
+      : '<button class="bigbtn" type="button" data-a="avond"><span>'+esc(labelOp)+'</span>'+
         '<small>naschoolse opvang · '+esc(uur(nowTime()))+'</small></button>';
   }
   slot.innerHTML = '<div class="btnpaar">'+knoppen+'</div>';
@@ -443,8 +493,11 @@ function renderRegistreren(){
     bouwDetailVelden(reg);
     zetVeld("d-opm", reg.opmerking||"");
     el("d-gps").innerHTML = gpsTekst(reg);
-    el("d-receipt").innerHTML = bonHTML(reg);
+    el("berekenblok").hidden = !isBeheerder();
+    if(isBeheerder()) el("d-receipt").innerHTML = bonHTML(reg);
   } else el("detailcard").style.display="none";
+
+  renderRecent();
 
   bouwToevoegVelden();
   renderHerinnering();
@@ -465,8 +518,11 @@ function bouwDetailVelden(reg){
     h += '<div class="field"><label for="d-atijd">Opgehaald om</label><input type="time" id="d-atijd" value="'+esc(reg.avondTijd||"")+'"></div>'+
          '<div class="field"><label for="d-adoor">Opgehaald door</label><select id="d-adoor">'+opties(reg.avondDoor||state.wie)+'</select></div>';
   }
-  h += '<div class="field"><label for="d-lstart">Lessen van (alleen vandaag)</label><input type="time" id="d-lstart" value="'+esc(reg.lesStart||"")+'"></div>'+
-       '<div class="field"><label for="d-leinde">Lessen tot (alleen vandaag)</label><input type="time" id="d-leinde" value="'+esc(reg.lesEinde||"")+'"></div></div>';
+  if(isBeheerder()){
+    h += '<div class="field"><label for="d-lstart">Lessen van (alleen vandaag)</label><input type="time" id="d-lstart" value="'+esc(reg.lesStart||"")+'"></div>'+
+         '<div class="field"><label for="d-leinde">Lessen tot (alleen vandaag)</label><input type="time" id="d-leinde" value="'+esc(reg.lesEinde||"")+'"></div>';
+  }
+  h += '</div>';
   el("detailvelden").innerHTML=h;
 }
 
@@ -572,7 +628,7 @@ function bewaarDetail(){
   var iso=isoToday(), reg=state.regs[iso]; if(!reg) return;
   if(el("d-otijd")){ reg.ochtendTijd=el("d-otijd").value; reg.ochtendDoor=el("d-odoor").value; reg.ochtendEind=el("d-oeind").value; }
   if(el("d-atijd")){ reg.avondTijd=el("d-atijd").value; reg.avondDoor=el("d-adoor").value; }
-  reg.lesStart=el("d-lstart").value; reg.lesEinde=el("d-leinde").value;
+  if(el("d-lstart")){ reg.lesStart=el("d-lstart").value; reg.lesEinde=el("d-leinde").value; }
   reg.opmerking=el("d-opm").value;
   reg.bewaardDoor=state.wie||""; reg.bewaardOp=new Date().toISOString();
   duw("registratie",reg); toast("Bewaard.");
@@ -595,6 +651,35 @@ function voegToe(){
 }
 
 function zetVeld(id,v){ var e=el(id); if(e && document.activeElement!==e) e.value=(v==null?"":v); }
+
+/* ---------- de voorbije dagen (voor wie geen historiek ziet) ---------- */
+function renderRecent(){
+  var kaart = el("recentcard");
+  if(isBeheerder()){ kaart.hidden = true; return; }
+  kaart.hidden = false;
+  var vandaag = isoToday();
+  var lijst = Object.keys(state.regs).filter(function(k){ return k < vandaag; }).sort().reverse().slice(0,7);
+  var box = el("recent-body");
+  if(!lijst.length){
+    box.innerHTML = '<div class="hint">Nog geen eerdere registraties.</div>';
+    return;
+  }
+  var ko=doetOchtend(), ka=doetAvond();
+  var h = '<div class="tablewrap"><table style="min-width:420px"><thead><tr><th>Dag</th>'+
+    (ko?'<th>Afgezet</th>':'')+(ka?'<th>Afgehaald</th>':'')+'<th>Door</th><th></th></tr></thead><tbody>';
+  lijst.forEach(function(iso){
+    var r = state.regs[iso];
+    h += '<tr data-iso="'+esc(iso)+'"><td>'+esc(dateShort(iso))+'</td>'+
+      (ko?'<td class="num">'+esc(uur(r.ochtendTijd))+'</td>':'')+
+      (ka?'<td class="num">'+esc(uur(r.avondTijd))+'</td>':'')+
+      '<td>'+esc(r.avondDoor||r.ochtendDoor||"—")+(r.opmerking?'<span class="opm">'+esc(r.opmerking)+'</span>':"")+'</td>'+
+      '<td class="n"><button class="rowbtn" data-edit="'+esc(iso)+'">wijzig</button></td></tr>';
+  });
+  box.innerHTML = h+'</tbody></table></div>';
+  Array.prototype.forEach.call(box.querySelectorAll("[data-edit]"), function(b){
+    b.onclick=function(){ openEdit(b.getAttribute("data-edit"), "recent-body"); };
+  });
+}
 
 /* ---------- historiek ---------- */
 function renderHistoriek(){
@@ -627,21 +712,24 @@ function renderHistoriek(){
   });
 }
 
-function openEdit(iso){
+function openEdit(iso, boxId){
+  boxId = boxId || "h-body";
   var reg=state.regs[iso]; if(!reg) return;
-  var tr=el("h-body").querySelector('tr[data-iso="'+iso+'"]'); if(!tr) return;
+  var box=el(boxId); if(!box) return;
+  var tr=box.querySelector('tr[data-iso="'+iso+'"]'); if(!tr) return;
   var nxt=tr.nextElementSibling;
   if(nxt && nxt.classList.contains("editrow")){ nxt.remove(); return; }
-  var open=el("h-body").querySelector("tr.editrow"); if(open) open.remove();
+  var open=box.querySelector("tr.editrow"); if(open) open.remove();
   var row=document.createElement("tr"); row.className="editrow";
   var td=document.createElement("td"); td.colSpan=8; td.style.whiteSpace="normal";
   var h='<div class="grid3">';
   if(doetOchtend()) h+='<div class="field"><label>Afgezet om</label><input type="time" class="e-ot" value="'+esc(reg.ochtendTijd||"")+'"></div>'+
     '<div class="field"><label>Naar de klas om</label><input type="time" class="e-oe" value="'+esc(reg.ochtendEind||"")+'"></div>';
   if(doetAvond()) h+='<div class="field"><label>Opgehaald om</label><input type="time" class="e-at" value="'+esc(reg.avondTijd||"")+'"></div>';
-  h+='<div class="field"><label>Door</label><select class="e-wie">'+opties(reg.avondDoor||reg.ochtendDoor)+'</select></div>'+
-     '<div class="field"><label>Lessen van (deze dag)</label><input type="time" class="e-ls" value="'+esc(reg.lesStart||"")+'"></div>'+
-     '<div class="field"><label>Lessen tot (deze dag)</label><input type="time" class="e-le" value="'+esc(reg.lesEinde||"")+'"></div></div>'+
+  h+='<div class="field"><label>Door</label><select class="e-wie">'+opties(reg.avondDoor||reg.ochtendDoor)+'</select></div>';
+  if(isBeheerder()) h+='<div class="field"><label>Lessen van (deze dag)</label><input type="time" class="e-ls" value="'+esc(reg.lesStart||"")+'"></div>'+
+     '<div class="field"><label>Lessen tot (deze dag)</label><input type="time" class="e-le" value="'+esc(reg.lesEinde||"")+'"></div>';
+  h+='</div>'+
      '<div class="field" style="margin-top:10px"><label>Opmerking</label><input type="text" class="e-opm" value="'+esc(reg.opmerking||"")+'"></div>'+
      '<div class="row spread" style="margin-top:12px">'+
        '<button class="btn ghost sm e-del" type="button">Deze dag verwijderen</button>'+
@@ -652,7 +740,7 @@ function openEdit(iso){
     if(td.querySelector(".e-at")) reg.avondTijd=td.querySelector(".e-at").value;
     var wie=td.querySelector(".e-wie").value;
     if(reg.avondTijd) reg.avondDoor=wie; if(reg.ochtendTijd && !reg.ochtendDoor) reg.ochtendDoor=wie;
-    reg.lesStart=td.querySelector(".e-ls").value; reg.lesEinde=td.querySelector(".e-le").value;
+    if(td.querySelector(".e-ls")){ reg.lesStart=td.querySelector(".e-ls").value; reg.lesEinde=td.querySelector(".e-le").value; }
     reg.opmerking=td.querySelector(".e-opm").value;
     reg.bewaardDoor=state.wie||""; reg.bewaardOp=new Date().toISOString();
     if(!reg.ochtendTijd && !reg.avondTijd){ delete state.regs[iso]; duw("verwijder",{datum:iso}); toast("Dag leeg — verwijderd."); return; }

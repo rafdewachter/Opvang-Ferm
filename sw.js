@@ -3,7 +3,7 @@
    die halen we altijd rechtstreeks bij Apps Script, en wat niet vertrekt
    wacht in de wachtrij van de app zelf. */
 
-var CACHE = "schoolopvangcheck-v2";
+var CACHE = "schoolopvangcheck-v4";
 var SHELL = ["./","./index.html","./app.js","./config.js","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install", function (e) {
